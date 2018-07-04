@@ -1,0 +1,150 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+    <Schema Namespace="iTravelsModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="it_st_Role">
+          <Key>
+            <PropertyRef Name="Role_Id" />
+          </Key>
+          <Property Name="Role_Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Role_Name" Type="varchar" MaxLength="50" Nullable="false" />
+          <Property Name="Is_Active" Type="bit" Nullable="false" />
+          <Property Name="Is_Deleted" Type="bit" Nullable="false" />
+          <Property Name="Create_Time_Stamp" Type="datetime" Nullable="false" />
+          <Property Name="Update_Time_Stamp" Type="datetime" Nullable="false" />
+        </EntityType>
+        <EntityType Name="it_User">
+          <Key>
+            <PropertyRef Name="User_Id" />
+          </Key>
+          <Property Name="User_Id" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="Email_Address" Type="varchar" MaxLength="50" Nullable="false" />
+          <Property Name="Email_Confirmed" Type="bit" Nullable="false" />
+          <Property Name="Password" Type="varchar" MaxLength="50" Nullable="false" />
+          <Property Name="First_Name" Type="varchar" MaxLength="100" Nullable="false" />
+          <Property Name="Last_Name" Type="varchar" MaxLength="100" Nullable="false" />
+          <Property Name="Mobile_Number" Type="varchar" MaxLength="15" Nullable="false" />
+          <Property Name="Display_Name" Type="varchar" MaxLength="100" Nullable="false" />
+          <Property Name="Security_Stamp" Type="nvarchar" MaxLength="50" />
+          <Property Name="Mobile_Number_Confirmed" Type="bit" Nullable="false" />
+          <Property Name="Two_Factor_Enabled" Type="bit" Nullable="false" />
+          <Property Name="Lockout_Enabled" Type="bit" Nullable="false" />
+          <Property Name="Lockout_End_Date_Utc" Type="datetime" />
+          <Property Name="Access_Failed_Count" Type="bigint" Nullable="false" />
+          <Property Name="Is_Deleted" Type="bit" Nullable="false" />
+          <Property Name="Create_Time_Stamp" Type="datetime" Nullable="false" />
+          <Property Name="Update_Time_Stamp" Type="datetime" Nullable="false" />
+        </EntityType>
+        <EntityContainer Name="iTravelsModelStoreContainer">
+          <EntitySet Name="it_st_Role" EntityType="Self.it_st_Role" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="it_User" EntityType="Self.it_User" Schema="dbo" store:Type="Tables" />
+        </EntityContainer>
+      </Schema></edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="iTravelsModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityContainer Name="iTravelsEntities" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="it_st_Role" EntityType="iTravelsModel.it_st_Role" />
+          <EntitySet Name="it_User" EntityType="iTravelsModel.it_User" />
+        </EntityContainer>
+        <EntityType Name="it_st_Role">
+          <Key>
+            <PropertyRef Name="Role_Id" />
+          </Key>
+          <Property Name="Role_Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Role_Name" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="Is_Active" Type="Boolean" Nullable="false" />
+          <Property Name="Is_Deleted" Type="Boolean" Nullable="false" />
+          <Property Name="Create_Time_Stamp" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="Update_Time_Stamp" Type="DateTime" Nullable="false" Precision="3" />
+        </EntityType>
+        <EntityType Name="it_User">
+          <Key>
+            <PropertyRef Name="User_Id" />
+          </Key>
+          <Property Name="User_Id" Type="Guid" Nullable="false" />
+          <Property Name="Email_Address" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="Email_Confirmed" Type="Boolean" Nullable="false" />
+          <Property Name="Password" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="First_Name" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="false" />
+          <Property Name="Last_Name" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="false" />
+          <Property Name="Mobile_Number" Type="String" Nullable="false" MaxLength="15" FixedLength="false" Unicode="false" />
+          <Property Name="Display_Name" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="false" />
+          <Property Name="Security_Stamp" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Mobile_Number_Confirmed" Type="Boolean" Nullable="false" />
+          <Property Name="Two_Factor_Enabled" Type="Boolean" Nullable="false" />
+          <Property Name="Lockout_Enabled" Type="Boolean" Nullable="false" />
+          <Property Name="Lockout_End_Date_Utc" Type="DateTime" Precision="3" />
+          <Property Name="Access_Failed_Count" Type="Int64" Nullable="false" />
+          <Property Name="Is_Deleted" Type="Boolean" Nullable="false" />
+          <Property Name="Create_Time_Stamp" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="Update_Time_Stamp" Type="DateTime" Nullable="false" Precision="3" />
+        </EntityType>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="iTravelsModelStoreContainer" CdmEntityContainer="iTravelsEntities">
+          <EntitySetMapping Name="it_st_Role">
+            <EntityTypeMapping TypeName="iTravelsModel.it_st_Role">
+              <MappingFragment StoreEntitySet="it_st_Role">
+                <ScalarProperty Name="Update_Time_Stamp" ColumnName="Update_Time_Stamp" />
+                <ScalarProperty Name="Create_Time_Stamp" ColumnName="Create_Time_Stamp" />
+                <ScalarProperty Name="Is_Deleted" ColumnName="Is_Deleted" />
+                <ScalarProperty Name="Is_Active" ColumnName="Is_Active" />
+                <ScalarProperty Name="Role_Name" ColumnName="Role_Name" />
+                <ScalarProperty Name="Role_Id" ColumnName="Role_Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="it_User">
+            <EntityTypeMapping TypeName="iTravelsModel.it_User">
+              <MappingFragment StoreEntitySet="it_User">
+                <ScalarProperty Name="Update_Time_Stamp" ColumnName="Update_Time_Stamp" />
+                <ScalarProperty Name="Create_Time_Stamp" ColumnName="Create_Time_Stamp" />
+                <ScalarProperty Name="Is_Deleted" ColumnName="Is_Deleted" />
+                <ScalarProperty Name="Access_Failed_Count" ColumnName="Access_Failed_Count" />
+                <ScalarProperty Name="Lockout_End_Date_Utc" ColumnName="Lockout_End_Date_Utc" />
+                <ScalarProperty Name="Lockout_Enabled" ColumnName="Lockout_Enabled" />
+                <ScalarProperty Name="Two_Factor_Enabled" ColumnName="Two_Factor_Enabled" />
+                <ScalarProperty Name="Mobile_Number_Confirmed" ColumnName="Mobile_Number_Confirmed" />
+                <ScalarProperty Name="Security_Stamp" ColumnName="Security_Stamp" />
+                <ScalarProperty Name="Display_Name" ColumnName="Display_Name" />
+                <ScalarProperty Name="Mobile_Number" ColumnName="Mobile_Number" />
+                <ScalarProperty Name="Last_Name" ColumnName="Last_Name" />
+                <ScalarProperty Name="First_Name" ColumnName="First_Name" />
+                <ScalarProperty Name="Password" ColumnName="Password" />
+                <ScalarProperty Name="Email_Confirmed" ColumnName="Email_Confirmed" />
+                <ScalarProperty Name="Email_Address" ColumnName="Email_Address" />
+                <ScalarProperty Name="User_Id" ColumnName="User_Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>
