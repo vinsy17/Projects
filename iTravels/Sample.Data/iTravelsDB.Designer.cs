@@ -1,4 +1,4 @@
-﻿// T4 code generation is enabled for model 'C:\Users\Vinsy\Documents\Visual Studio 2017\Projects\iTravels\Sample.Data\iTravelsDB.edmx'. 
+﻿// T4 code generation is enabled for model 'C:\Users\Vinsy\source\repos\Projects\iTravels\iTravels\iTravels\Sample.Data\iTravelsDB.edmx'. 
 // To enable legacy code generation, change the value of the 'Code Generation Strategy' designer
 // property to 'Legacy ObjectContext'. This property is available in the Properties Window when the model
 // is open in the designer.

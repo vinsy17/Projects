@@ -20,12 +20,13 @@ namespace iTravels.Web.Controllers
 
         public ActionResult Index()
         {
-            var user=_userService.GetUser(new Guid());
-            if (user != null) {
+            //var user=_userService.GetUser(new Guid());
+            //if (user != null) {
 
-            }
-            else {
-            }
+            //}
+            //else {
+            //}
+            TempData["Guid"] = Utilities.Utility.GetUserIdFromSession();//Guid.NewGuid();
             return View();
         }
 

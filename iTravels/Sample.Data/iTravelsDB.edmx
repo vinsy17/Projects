@@ -4,7 +4,7 @@
   <edmx:Runtime>
     <!-- SSDL content -->
     <edmx:StorageModels>
-    <Schema Namespace="iTravelsModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+    <Schema Namespace="iTravelsDB.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
         <EntityType Name="it_st_Role">
           <Key>
             <PropertyRef Name="Role_Id" />
@@ -22,105 +22,215 @@
           </Key>
           <Property Name="User_Id" Type="uniqueidentifier" Nullable="false" />
           <Property Name="Email_Address" Type="varchar" MaxLength="50" Nullable="false" />
-          <Property Name="Email_Confirmed" Type="bit" Nullable="false" />
+          <Property Name="Is_Email_Confirmed" Type="bit" Nullable="false" />
           <Property Name="Password" Type="varchar" MaxLength="50" Nullable="false" />
+          <Property Name="Password_Salt" Type="varchar" MaxLength="50" />
           <Property Name="First_Name" Type="varchar" MaxLength="100" Nullable="false" />
           <Property Name="Last_Name" Type="varchar" MaxLength="100" Nullable="false" />
           <Property Name="Mobile_Number" Type="varchar" MaxLength="15" Nullable="false" />
           <Property Name="Display_Name" Type="varchar" MaxLength="100" Nullable="false" />
           <Property Name="Security_Stamp" Type="nvarchar" MaxLength="50" />
-          <Property Name="Mobile_Number_Confirmed" Type="bit" Nullable="false" />
-          <Property Name="Two_Factor_Enabled" Type="bit" Nullable="false" />
-          <Property Name="Lockout_Enabled" Type="bit" Nullable="false" />
+          <Property Name="Is_Mobile_Number_Confirmed" Type="bit" Nullable="false" />
+          <Property Name="Is_Two_Factor_Enabled" Type="bit" Nullable="false" />
+          <Property Name="Is_Lockout_Enabled" Type="bit" Nullable="false" />
           <Property Name="Lockout_End_Date_Utc" Type="datetime" />
           <Property Name="Access_Failed_Count" Type="bigint" Nullable="false" />
           <Property Name="Is_Deleted" Type="bit" Nullable="false" />
           <Property Name="Create_Time_Stamp" Type="datetime" Nullable="false" />
           <Property Name="Update_Time_Stamp" Type="datetime" Nullable="false" />
         </EntityType>
-        <EntityContainer Name="iTravelsModelStoreContainer">
+        <EntityType Name="it_User_Role">
+          <Key>
+            <PropertyRef Name="User_Role_Id" />
+          </Key>
+          <Property Name="User_Role_Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="User_Id" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="Role_Id" Type="bigint" Nullable="false" />
+          <Property Name="Is_Active" Type="bit" Nullable="false" />
+          <Property Name="Is_Deleted" Type="bit" Nullable="false" />
+          <Property Name="Create_Time_Stamp" Type="datetime" Nullable="false" />
+          <Property Name="Update_Time_Stamp" Type="datetime" Nullable="false" />
+        </EntityType>
+        <Association Name="FK_it_User_Role_it_st_Role">
+          <End Role="it_st_Role" Type="Self.it_st_Role" Multiplicity="1" />
+          <End Role="it_User_Role" Type="Self.it_User_Role" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="it_st_Role">
+              <PropertyRef Name="Role_Id" />
+            </Principal>
+            <Dependent Role="it_User_Role">
+              <PropertyRef Name="Role_Id" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_it_User_Role_it_User">
+          <End Role="it_User" Type="Self.it_User" Multiplicity="1" />
+          <End Role="it_User_Role" Type="Self.it_User_Role" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="it_User">
+              <PropertyRef Name="User_Id" />
+            </Principal>
+            <Dependent Role="it_User_Role">
+              <PropertyRef Name="User_Id" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="iTravelsDBStoreContainer">
           <EntitySet Name="it_st_Role" EntityType="Self.it_st_Role" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="it_User" EntityType="Self.it_User" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="it_User_Role" EntityType="Self.it_User_Role" Schema="dbo" store:Type="Tables" />
+          <AssociationSet Name="FK_it_User_Role_it_st_Role" Association="Self.FK_it_User_Role_it_st_Role">
+            <End Role="it_st_Role" EntitySet="it_st_Role" />
+            <End Role="it_User_Role" EntitySet="it_User_Role" />
+          </AssociationSet>
+          <AssociationSet Name="FK_it_User_Role_it_User" Association="Self.FK_it_User_Role_it_User">
+            <End Role="it_User" EntitySet="it_User" />
+            <End Role="it_User_Role" EntitySet="it_User_Role" />
+          </AssociationSet>
         </EntityContainer>
       </Schema></edmx:StorageModels>
     <!-- CSDL content -->
     <edmx:ConceptualModels>
-      <Schema Namespace="iTravelsModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
-        <EntityContainer Name="iTravelsEntities" annotation:LazyLoadingEnabled="true">
-          <EntitySet Name="it_st_Role" EntityType="iTravelsModel.it_st_Role" />
-          <EntitySet Name="it_User" EntityType="iTravelsModel.it_User" />
-        </EntityContainer>
+      <Schema Namespace="iTravelsDB" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
         <EntityType Name="it_st_Role">
           <Key>
             <PropertyRef Name="Role_Id" />
           </Key>
           <Property Name="Role_Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="Role_Name" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="Role_Name" Type="String" MaxLength="50" FixedLength="false" Unicode="false" Nullable="false" />
           <Property Name="Is_Active" Type="Boolean" Nullable="false" />
           <Property Name="Is_Deleted" Type="Boolean" Nullable="false" />
           <Property Name="Create_Time_Stamp" Type="DateTime" Nullable="false" Precision="3" />
           <Property Name="Update_Time_Stamp" Type="DateTime" Nullable="false" Precision="3" />
+          <NavigationProperty Name="it_User_Role" Relationship="Self.FK_it_User_Role_it_st_Role" FromRole="it_st_Role" ToRole="it_User_Role" />
         </EntityType>
         <EntityType Name="it_User">
           <Key>
             <PropertyRef Name="User_Id" />
           </Key>
           <Property Name="User_Id" Type="Guid" Nullable="false" />
-          <Property Name="Email_Address" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
-          <Property Name="Email_Confirmed" Type="Boolean" Nullable="false" />
-          <Property Name="Password" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
-          <Property Name="First_Name" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="false" />
-          <Property Name="Last_Name" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="false" />
-          <Property Name="Mobile_Number" Type="String" Nullable="false" MaxLength="15" FixedLength="false" Unicode="false" />
-          <Property Name="Display_Name" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="false" />
+          <Property Name="Email_Address" Type="String" MaxLength="50" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="Is_Email_Confirmed" Type="Boolean" Nullable="false" />
+          <Property Name="Password" Type="String" MaxLength="50" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="First_Name" Type="String" MaxLength="100" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="Last_Name" Type="String" MaxLength="100" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="Mobile_Number" Type="String" MaxLength="15" FixedLength="false" Unicode="false" Nullable="false" />
+          <Property Name="Display_Name" Type="String" MaxLength="100" FixedLength="false" Unicode="false" Nullable="false" />
           <Property Name="Security_Stamp" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
-          <Property Name="Mobile_Number_Confirmed" Type="Boolean" Nullable="false" />
-          <Property Name="Two_Factor_Enabled" Type="Boolean" Nullable="false" />
-          <Property Name="Lockout_Enabled" Type="Boolean" Nullable="false" />
+          <Property Name="Is_Mobile_Number_Confirmed" Type="Boolean" Nullable="false" />
+          <Property Name="Is_Two_Factor_Enabled" Type="Boolean" Nullable="false" />
+          <Property Name="Is_Lockout_Enabled" Type="Boolean" Nullable="false" />
           <Property Name="Lockout_End_Date_Utc" Type="DateTime" Precision="3" />
           <Property Name="Access_Failed_Count" Type="Int64" Nullable="false" />
           <Property Name="Is_Deleted" Type="Boolean" Nullable="false" />
           <Property Name="Create_Time_Stamp" Type="DateTime" Nullable="false" Precision="3" />
           <Property Name="Update_Time_Stamp" Type="DateTime" Nullable="false" Precision="3" />
+          <NavigationProperty Name="it_User_Role" Relationship="Self.FK_it_User_Role_it_User" FromRole="it_User" ToRole="it_User_Role" />
+          <Property Name="Password_Salt" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
         </EntityType>
+        <EntityType Name="it_User_Role">
+          <Key>
+            <PropertyRef Name="User_Role_Id" />
+          </Key>
+          <Property Name="User_Role_Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="User_Id" Type="Guid" Nullable="false" />
+          <Property Name="Role_Id" Type="Int64" Nullable="false" />
+          <Property Name="Is_Active" Type="Boolean" Nullable="false" />
+          <Property Name="Is_Deleted" Type="Boolean" Nullable="false" />
+          <Property Name="Create_Time_Stamp" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="Update_Time_Stamp" Type="DateTime" Nullable="false" Precision="3" />
+          <NavigationProperty Name="it_st_Role" Relationship="Self.FK_it_User_Role_it_st_Role" FromRole="it_User_Role" ToRole="it_st_Role" />
+          <NavigationProperty Name="it_User" Relationship="Self.FK_it_User_Role_it_User" FromRole="it_User_Role" ToRole="it_User" />
+        </EntityType>
+        <Association Name="FK_it_User_Role_it_st_Role">
+          <End Role="it_st_Role" Type="Self.it_st_Role" Multiplicity="1" />
+          <End Role="it_User_Role" Type="Self.it_User_Role" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="it_st_Role">
+              <PropertyRef Name="Role_Id" />
+            </Principal>
+            <Dependent Role="it_User_Role">
+              <PropertyRef Name="Role_Id" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_it_User_Role_it_User">
+          <End Role="it_User" Type="Self.it_User" Multiplicity="1" />
+          <End Role="it_User_Role" Type="Self.it_User_Role" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="it_User">
+              <PropertyRef Name="User_Id" />
+            </Principal>
+            <Dependent Role="it_User_Role">
+              <PropertyRef Name="User_Id" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="iTravelsEntities" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="it_st_Role" EntityType="Self.it_st_Role" />
+          <EntitySet Name="it_User" EntityType="Self.it_User" />
+          <EntitySet Name="it_User_Role" EntityType="Self.it_User_Role" />
+          <AssociationSet Name="FK_it_User_Role_it_st_Role" Association="Self.FK_it_User_Role_it_st_Role">
+            <End Role="it_st_Role" EntitySet="it_st_Role" />
+            <End Role="it_User_Role" EntitySet="it_User_Role" />
+          </AssociationSet>
+          <AssociationSet Name="FK_it_User_Role_it_User" Association="Self.FK_it_User_Role_it_User">
+            <End Role="it_User" EntitySet="it_User" />
+            <End Role="it_User_Role" EntitySet="it_User_Role" />
+          </AssociationSet>
+        </EntityContainer>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
     <edmx:Mappings>
       <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
-        <EntityContainerMapping StorageEntityContainer="iTravelsModelStoreContainer" CdmEntityContainer="iTravelsEntities">
+        <EntityContainerMapping StorageEntityContainer="iTravelsDBStoreContainer" CdmEntityContainer="iTravelsEntities">
           <EntitySetMapping Name="it_st_Role">
-            <EntityTypeMapping TypeName="iTravelsModel.it_st_Role">
+            <EntityTypeMapping TypeName="iTravelsDB.it_st_Role">
               <MappingFragment StoreEntitySet="it_st_Role">
-                <ScalarProperty Name="Update_Time_Stamp" ColumnName="Update_Time_Stamp" />
-                <ScalarProperty Name="Create_Time_Stamp" ColumnName="Create_Time_Stamp" />
-                <ScalarProperty Name="Is_Deleted" ColumnName="Is_Deleted" />
-                <ScalarProperty Name="Is_Active" ColumnName="Is_Active" />
-                <ScalarProperty Name="Role_Name" ColumnName="Role_Name" />
                 <ScalarProperty Name="Role_Id" ColumnName="Role_Id" />
+                <ScalarProperty Name="Role_Name" ColumnName="Role_Name" />
+                <ScalarProperty Name="Is_Active" ColumnName="Is_Active" />
+                <ScalarProperty Name="Is_Deleted" ColumnName="Is_Deleted" />
+                <ScalarProperty Name="Create_Time_Stamp" ColumnName="Create_Time_Stamp" />
+                <ScalarProperty Name="Update_Time_Stamp" ColumnName="Update_Time_Stamp" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
           <EntitySetMapping Name="it_User">
-            <EntityTypeMapping TypeName="iTravelsModel.it_User">
+            <EntityTypeMapping TypeName="iTravelsDB.it_User">
               <MappingFragment StoreEntitySet="it_User">
-                <ScalarProperty Name="Update_Time_Stamp" ColumnName="Update_Time_Stamp" />
-                <ScalarProperty Name="Create_Time_Stamp" ColumnName="Create_Time_Stamp" />
-                <ScalarProperty Name="Is_Deleted" ColumnName="Is_Deleted" />
-                <ScalarProperty Name="Access_Failed_Count" ColumnName="Access_Failed_Count" />
-                <ScalarProperty Name="Lockout_End_Date_Utc" ColumnName="Lockout_End_Date_Utc" />
-                <ScalarProperty Name="Lockout_Enabled" ColumnName="Lockout_Enabled" />
-                <ScalarProperty Name="Two_Factor_Enabled" ColumnName="Two_Factor_Enabled" />
-                <ScalarProperty Name="Mobile_Number_Confirmed" ColumnName="Mobile_Number_Confirmed" />
-                <ScalarProperty Name="Security_Stamp" ColumnName="Security_Stamp" />
-                <ScalarProperty Name="Display_Name" ColumnName="Display_Name" />
-                <ScalarProperty Name="Mobile_Number" ColumnName="Mobile_Number" />
-                <ScalarProperty Name="Last_Name" ColumnName="Last_Name" />
-                <ScalarProperty Name="First_Name" ColumnName="First_Name" />
-                <ScalarProperty Name="Password" ColumnName="Password" />
-                <ScalarProperty Name="Email_Confirmed" ColumnName="Email_Confirmed" />
-                <ScalarProperty Name="Email_Address" ColumnName="Email_Address" />
+                <ScalarProperty Name="Password_Salt" ColumnName="Password_Salt" />
                 <ScalarProperty Name="User_Id" ColumnName="User_Id" />
+                <ScalarProperty Name="Email_Address" ColumnName="Email_Address" />
+                <ScalarProperty Name="Is_Email_Confirmed" ColumnName="Is_Email_Confirmed" />
+                <ScalarProperty Name="Password" ColumnName="Password" />
+                <ScalarProperty Name="First_Name" ColumnName="First_Name" />
+                <ScalarProperty Name="Last_Name" ColumnName="Last_Name" />
+                <ScalarProperty Name="Mobile_Number" ColumnName="Mobile_Number" />
+                <ScalarProperty Name="Display_Name" ColumnName="Display_Name" />
+                <ScalarProperty Name="Security_Stamp" ColumnName="Security_Stamp" />
+                <ScalarProperty Name="Is_Mobile_Number_Confirmed" ColumnName="Is_Mobile_Number_Confirmed" />
+                <ScalarProperty Name="Is_Two_Factor_Enabled" ColumnName="Is_Two_Factor_Enabled" />
+                <ScalarProperty Name="Is_Lockout_Enabled" ColumnName="Is_Lockout_Enabled" />
+                <ScalarProperty Name="Lockout_End_Date_Utc" ColumnName="Lockout_End_Date_Utc" />
+                <ScalarProperty Name="Access_Failed_Count" ColumnName="Access_Failed_Count" />
+                <ScalarProperty Name="Is_Deleted" ColumnName="Is_Deleted" />
+                <ScalarProperty Name="Create_Time_Stamp" ColumnName="Create_Time_Stamp" />
+                <ScalarProperty Name="Update_Time_Stamp" ColumnName="Update_Time_Stamp" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="it_User_Role">
+            <EntityTypeMapping TypeName="iTravelsDB.it_User_Role">
+              <MappingFragment StoreEntitySet="it_User_Role">
+                <ScalarProperty Name="User_Role_Id" ColumnName="User_Role_Id" />
+                <ScalarProperty Name="User_Id" ColumnName="User_Id" />
+                <ScalarProperty Name="Role_Id" ColumnName="Role_Id" />
+                <ScalarProperty Name="Is_Active" ColumnName="Is_Active" />
+                <ScalarProperty Name="Is_Deleted" ColumnName="Is_Deleted" />
+                <ScalarProperty Name="Create_Time_Stamp" ColumnName="Create_Time_Stamp" />
+                <ScalarProperty Name="Update_Time_Stamp" ColumnName="Update_Time_Stamp" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

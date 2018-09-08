@@ -9,5 +9,8 @@ namespace Sample.Core.Repositories
     {
         User AuthenticateUser(string EmailAddress, string Password);
         User GetUser(Guid userGuid);
+        User Register(User user);
+        bool IsAccountExists(string emailAddress);
+        bool ChangePassword(Guid userId, string currentPassword, string newPassword);
     }
 }

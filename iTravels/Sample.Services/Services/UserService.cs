@@ -20,9 +20,21 @@ namespace Sample.Services.Services
             return _repository.AuthenticateUser(EmailAddress, Password);
             //}
         }
-        public User GetUser(Guid userGuid)
+        public User GetUser(Guid userId)
         {
-            return _repository.GetUser(userGuid);
+            return _repository.GetUser(userId);
+        }
+        public User Register(User user)
+        {
+            return _repository.Register(user);
+        }
+        public bool IsAccountExists(string emailAddress)
+        {
+            return _repository.IsAccountExists(emailAddress);
+        }
+        public bool ChangePassword(Guid userId, string currentPassword, string newPassword)
+        {
+            return _repository.ChangePassword(userId, currentPassword, newPassword);
         }
     }
 }

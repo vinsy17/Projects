@@ -3,21 +3,24 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
-using Microsoft.AspNet.Identity;
-using Microsoft.AspNet.Identity.Owin;
-using Microsoft.Owin.Security;
+//using Microsoft.AspNet.Identity;
+//using Microsoft.AspNet.Identity.Owin;
+//using Microsoft.Owin.Security;
 using iTravels.Web.ViewModels;
 using System.Configuration;
 using System;
 using Sample.Core.Services;
+using System.Web.Security;
+using Sample.Core.Models;
+using iTravels.Web.Utilities;
 
 namespace iTravels.Web.Controllers
 {
-    [Authorize]
+    [iTAuthorize]
     public class AccountController : Controller
     {
-        private ApplicationSignInManager _signInManager;
-        private ApplicationUserManager _userManager;
+        //private ApplicationSignInManager _signInManager;
+        //private ApplicationUserManager _userManager;
         private readonly IUserService _userService;
 
         private bool IsIdentityEnabled = Convert.ToBoolean(ConfigurationManager.AppSettings["IsIdentityEnabled"].ToString());
@@ -28,35 +31,36 @@ namespace iTravels.Web.Controllers
         {
             this._userService = userService;
         }
-        public AccountController(ApplicationUserManager userManager, ApplicationSignInManager signInManager)
-        {
-            UserManager = userManager;
-            SignInManager = signInManager;
-        }
 
-        public ApplicationSignInManager SignInManager
-        {
-            get
-            {
-                return _signInManager ?? HttpContext.GetOwinContext().Get<ApplicationSignInManager>();
-            }
-            private set
-            {
-                _signInManager = value;
-            }
-        }
+        //public AccountController(ApplicationUserManager userManager, ApplicationSignInManager signInManager)
+        //{
+        //    UserManager = userManager;
+        //    SignInManager = signInManager;
+        //}
 
-        public ApplicationUserManager UserManager
-        {
-            get
-            {
-                return _userManager ?? HttpContext.GetOwinContext().GetUserManager<ApplicationUserManager>();
-            }
-            private set
-            {
-                _userManager = value;
-            }
-        }
+        //public ApplicationSignInManager SignInManager
+        //{
+        //    get
+        //    {
+        //        return _signInManager ?? HttpContext.GetOwinContext().Get<ApplicationSignInManager>();
+        //    }
+        //    private set
+        //    {
+        //        _signInManager = value;
+        //    }
+        //}
+
+        //public ApplicationUserManager UserManager
+        //{
+        //    get
+        //    {
+        //        return _userManager ?? HttpContext.GetOwinContext().GetUserManager<ApplicationUserManager>();
+        //    }
+        //    private set
+        //    {
+        //        _userManager = value;
+        //    }
+        //}
 
         //
         // GET: /Account/Login
@@ -74,27 +78,60 @@ namespace iTravels.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Login(LoginViewModel model, string returnUrl)
         {
-            if (!ModelState.IsValid)
+            if (IsIdentityEnabled)
             {
-                return View(model);
+                if (ModelState.IsValid)
+                {
+                    //// This doesn't count login failures towards account lockout
+                    //// To enable password failures to trigger account lockout, change to shouldLockout: true
+                    //var result = await SignInManager.PasswordSignInAsync(model.EmailAddress, model.Password, model.RememberMe, shouldLockout: false);
+                    //switch (result)
+                    //{
+                    //    case SignInStatus.Success:
+                    //        return RedirectToLocal(returnUrl);
+                    //    case SignInStatus.LockedOut:
+                    //        return View("Lockout");
+                    //    case SignInStatus.RequiresVerification:
+                    //        return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
+                    //    case SignInStatus.Failure:
+                    //    default:
+                    //        ModelState.AddModelError("", "Invalid login attempt.");
+                    //        return View(model);
+                    //}
+                }
             }
+            else
+            {
+                if (ModelState.IsValid)
+                {
 
-            // This doesn't count login failures towards account lockout
-            // To enable password failures to trigger account lockout, change to shouldLockout: true
-            var result = await SignInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, shouldLockout: false);
-            switch (result)
-            {
-                case SignInStatus.Success:
-                    return RedirectToLocal(returnUrl);
-                case SignInStatus.LockedOut:
-                    return View("Lockout");
-                case SignInStatus.RequiresVerification:
-                    return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
-                case SignInStatus.Failure:
-                default:
-                    ModelState.AddModelError("", "Invalid login attempt.");
-                    return View(model);
+                    var user = _userService.AuthenticateUser(model.EmailAddress, model.Password);
+                    if (user != null && user.IsAuthenticateUser)
+                    {
+                        bool isPersistent = true;
+                        int timeout = model.RememberMe ? 525600 : 30; // Timeout in minutes, 525600 = 365 days.
+                        FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(1, user.EmailAddress, DateTime.Now, DateTime.Now.AddMinutes(timeout), isPersistent, "your custom data");
+                        string cookiestr = FormsAuthentication.Encrypt(tkt);
+                        HttpCookie ck = new HttpCookie(FormsAuthentication.FormsCookieName, cookiestr);
+                        if (isPersistent)
+                            ck.Expires = tkt.Expiration;
+                        ck.Path = FormsAuthentication.FormsCookiePath;
+                        //    ck.HttpOnly = true; // cookie not available in javascript.
+                        Response.Cookies.Add(ck);
+                        //session values
+                        //HttpContext.Session.Add
+                        HttpContext.Session.Add("UserId", user.UserId);
+                        HttpContext.Session.Add("EmailAddress", user.UserId);
+                        HttpContext.Session.Add("DisplayName", user.DisplayName);
+                        return RedirectToLocal(returnUrl); //RedirectToAction("Index", "Home"); //RedirectToAction("Index", "Manage");
+                    }
+                    else if (user != null && user.LockoutEnabled)
+                    {
+                        ModelState.AddModelError("", "This Account has been locked out. Please try after some time!");
+                    }
+                }
             }
+            return View(model);
         }
 
         //
@@ -102,10 +139,13 @@ namespace iTravels.Web.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> VerifyCode(string provider, string returnUrl, bool rememberMe)
         {
-            // Require that the user has already logged in via username/password or external login
-            if (!await SignInManager.HasBeenVerifiedAsync())
+            if (IsIdentityEnabled)
             {
-                return View("Error");
+                //// Require that the user has already logged in via username/password or external login
+                //if (!await SignInManager.HasBeenVerifiedAsync())
+                //{
+                //    return View("Error");
+                //}
             }
             return View(new VerifyCodeViewModel { Provider = provider, ReturnUrl = returnUrl, RememberMe = rememberMe });
         }
@@ -121,23 +161,26 @@ namespace iTravels.Web.Controllers
             {
                 return View(model);
             }
-
-            // The following code protects for brute force attacks against the two factor codes. 
-            // If a user enters incorrect codes for a specified amount of time then the user account 
-            // will be locked out for a specified amount of time. 
-            // You can configure the account lockout settings in IdentityConfig
-            var result = await SignInManager.TwoFactorSignInAsync(model.Provider, model.Code, isPersistent: model.RememberMe, rememberBrowser: model.RememberBrowser);
-            switch (result)
+            if (IsIdentityEnabled)
             {
-                case SignInStatus.Success:
-                    return RedirectToLocal(model.ReturnUrl);
-                case SignInStatus.LockedOut:
-                    return View("Lockout");
-                case SignInStatus.Failure:
-                default:
-                    ModelState.AddModelError("", "Invalid code.");
-                    return View(model);
+                //// The following code protects for brute force attacks against the two factor codes. 
+                //// If a user enters incorrect codes for a specified amount of time then the user account 
+                //// will be locked out for a specified amount of time. 
+                //// You can configure the account lockout settings in IdentityConfig
+                //var result = await SignInManager.TwoFactorSignInAsync(model.Provider, model.Code, isPersistent: model.RememberMe, rememberBrowser: model.RememberBrowser);
+                //switch (result)
+                //{
+                //    case SignInStatus.Success:
+                //        return RedirectToLocal(model.ReturnUrl);
+                //    case SignInStatus.LockedOut:
+                //        return View("Lockout");
+                //    case SignInStatus.Failure:
+                //    default:
+                //        ModelState.AddModelError("", "Invalid code.");
+                //        return View(model);
+                //}
             }
+           return View(model);
         }
 
         //
@@ -157,29 +200,82 @@ namespace iTravels.Web.Controllers
         {
             if (IsIdentityEnabled)
             {
-                if (ModelState.IsValid)
-                {
-                    var user = new ApplicationUser { UserName = model.EmailAddress, Email = model.EmailAddress };
-                    var result = await UserManager.CreateAsync(user, model.Password);
-                    if (result.Succeeded)
-                    {
-                        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                //if (ModelState.IsValid)
+                //{
+                //    var user = new ApplicationUser { UserName = model.EmailAddress, Email = model.EmailAddress };
+                //    var result = await UserManager.CreateAsync(user, model.Password);
+                //    if (result.Succeeded)
+                //    {
+                //        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
 
-                        // For more information on how to enable account confirmation and password reset please visit https://go.microsoft.com/fwlink/?LinkID=320771
-                        // Send an email with this link
-                        // string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
-                        // var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
-                        // await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
+                //        // For more information on how to enable account confirmation and password reset please visit https://go.microsoft.com/fwlink/?LinkID=320771
+                //        // Send an email with this link
+                //        // string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
+                //        // var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
+                //        // await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
 
-                        return RedirectToAction("Index", "Home");
-                    }
-                    AddErrors(result);
-                }
+                //        return RedirectToAction("Index", "Home");
+                //    }
+                //    AddErrors(result);
+                //}
             }
             else
             {
                 if (ModelState.IsValid)
                 {
+                    bool isAccountExists = _userService.IsAccountExists(model.EmailAddress);
+                    if (!isAccountExists)
+                    {
+                        User user = new User()
+                        {
+                            EmailAddress = model.EmailAddress,
+                            Password = model.Password,
+                            FirstName = !string.IsNullOrWhiteSpace(model.FirstName) ? model.FirstName.Trim() : string.Empty,
+                            LastName = !string.IsNullOrWhiteSpace(model.LastName) ? model.LastName.Trim() : string.Empty,
+                            MobileNumber = model.MobileNumber,
+                            DisplayName = Utilities.Utility.GetFullName(model.FirstName, model.LastName),
+
+                        };
+                        //var keySalt = Helper.GeneratePassword(10);//ref url: https://www.c-sharpcorner.com/UploadFile/145c93/save-password-using-salted-hashing/
+                        //var password = Helper.EncodePassword(user.Password, keySalt);
+                        user.Password = user.Password;//password;
+                        //user.PasswordSalt = keySalt;
+                        user = _userService.Register(user);
+                        if (user != null && user.IsAuthenticateUser)
+                        {
+                            bool isPersistent = true;
+                            FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(1, user.EmailAddress, DateTime.Now, DateTime.Now.AddMinutes(30), isPersistent, "your custom data");
+                            string cookiestr = FormsAuthentication.Encrypt(tkt);
+                            HttpCookie ck = new HttpCookie(FormsAuthentication.FormsCookieName, cookiestr);
+                            if (isPersistent)
+                                ck.Expires = tkt.Expiration;
+                            ck.Path = FormsAuthentication.FormsCookiePath;
+                            Response.Cookies.Add(ck);
+                            HttpContext.Session.Add("UserId", user.UserId);
+                            HttpContext.Session.Add("EmailAddress", user.UserId);
+                            return RedirectToAction("Index", "Home");//RedirectToAction("Index", "Manage");
+                        }
+                        else if (user != null && user.IsEmailAlreadyExist)
+                        {
+                            ModelState.AddModelError("", "Email Address Already Exists! Please Login to proceed");
+                        }
+                        else if (user != null && user.LockoutEnabled)
+                        {
+                            ModelState.AddModelError("", "This Account has been locked out. Please try after some time!");
+                        }
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("", "Email Address Already Exists! Please Login to proceed");
+                    }
+                    //if (!string.IsNullOrWhiteSpace(returnUrl))
+                    //    return RedirectToUrl(returnUrl);
+                    //else
+                    //return RedirectToAction("Index","Manage");
+                }
+                else
+                {
+                    //AddErrors1
                 }
             }
 
@@ -196,8 +292,12 @@ namespace iTravels.Web.Controllers
             {
                 return View("Error");
             }
-            var result = await UserManager.ConfirmEmailAsync(userId, code);
-            return View(result.Succeeded ? "ConfirmEmail" : "Error");
+            if (IsIdentityEnabled)
+            {
+                //var result = await UserManager.ConfirmEmailAsync(userId, code);
+                //return View(result.Succeeded ? "ConfirmEmail" : "Error");
+            }
+             return View();
         }
 
         //
@@ -217,19 +317,22 @@ namespace iTravels.Web.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = await UserManager.FindByNameAsync(model.Email);
-                if (user == null || !(await UserManager.IsEmailConfirmedAsync(user.Id)))
+                if (IsIdentityEnabled)
                 {
-                    // Don't reveal that the user does not exist or is not confirmed
-                    return View("ForgotPasswordConfirmation");
-                }
+                    //var user = await UserManager.FindByNameAsync(model.Email);
+                    //if (user == null || !(await UserManager.IsEmailConfirmedAsync(user.Id)))
+                    //{
+                    //    // Don't reveal that the user does not exist or is not confirmed
+                    //    return View("ForgotPasswordConfirmation");
+                    //}
 
-                // For more information on how to enable account confirmation and password reset please visit https://go.microsoft.com/fwlink/?LinkID=320771
-                // Send an email with this link
-                // string code = await UserManager.GeneratePasswordResetTokenAsync(user.Id);
-                // var callbackUrl = Url.Action("ResetPassword", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);		
-                // await UserManager.SendEmailAsync(user.Id, "Reset Password", "Please reset your password by clicking <a href=\"" + callbackUrl + "\">here</a>");
-                // return RedirectToAction("ForgotPasswordConfirmation", "Account");
+                    //// For more information on how to enable account confirmation and password reset please visit https://go.microsoft.com/fwlink/?LinkID=320771
+                    //// Send an email with this link
+                    //// string code = await UserManager.GeneratePasswordResetTokenAsync(user.Id);
+                    //// var callbackUrl = Url.Action("ResetPassword", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);		
+                    //// await UserManager.SendEmailAsync(user.Id, "Reset Password", "Please reset your password by clicking <a href=\"" + callbackUrl + "\">here</a>");
+                    //// return RedirectToAction("ForgotPasswordConfirmation", "Account");
+                }
             }
 
             // If we got this far, something failed, redisplay form
@@ -263,18 +366,21 @@ namespace iTravels.Web.Controllers
             {
                 return View(model);
             }
-            var user = await UserManager.FindByNameAsync(model.Email);
-            if (user == null)
+            if (IsIdentityEnabled)
             {
-                // Don't reveal that the user does not exist
-                return RedirectToAction("ResetPasswordConfirmation", "Account");
+                //var user = await UserManager.FindByNameAsync(model.Email);
+                //if (user == null)
+                //{
+                //    // Don't reveal that the user does not exist
+                //    return RedirectToAction("ResetPasswordConfirmation", "Account");
+                //}
+                //var result = await UserManager.ResetPasswordAsync(user.Id, model.Code, model.Password);
+                //if (result.Succeeded)
+                //{
+                //    return RedirectToAction("ResetPasswordConfirmation", "Account");
+                //}
+                //AddErrors(result);
             }
-            var result = await UserManager.ResetPasswordAsync(user.Id, model.Code, model.Password);
-            if (result.Succeeded)
-            {
-                return RedirectToAction("ResetPasswordConfirmation", "Account");
-            }
-            AddErrors(result);
             return View();
         }
 
@@ -302,14 +408,19 @@ namespace iTravels.Web.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> SendCode(string returnUrl, bool rememberMe)
         {
-            var userId = await SignInManager.GetVerifiedUserIdAsync();
-            if (userId == null)
+            if (IsIdentityEnabled)
             {
-                return View("Error");
+                //var userId = await SignInManager.GetVerifiedUserIdAsync();
+                //if (userId == null)
+                //{
+                //    return View("Error");
+                //}
+                //var userFactors = await UserManager.GetValidTwoFactorProvidersAsync(userId);
+
+                //var factorOptions = userFactors.Select(purpose => new SelectListItem { Text = purpose, Value = purpose }).ToList();
+                //return View(new SendCodeViewModel { Providers = factorOptions, ReturnUrl = returnUrl, RememberMe = rememberMe });
             }
-            var userFactors = await UserManager.GetValidTwoFactorProvidersAsync(userId);
-            var factorOptions = userFactors.Select(purpose => new SelectListItem { Text = purpose, Value = purpose }).ToList();
-            return View(new SendCodeViewModel { Providers = factorOptions, ReturnUrl = returnUrl, RememberMe = rememberMe });
+            return View();
         }
 
         //
@@ -323,11 +434,13 @@ namespace iTravels.Web.Controllers
             {
                 return View();
             }
-
-            // Generate the token and send it
-            if (!await SignInManager.SendTwoFactorCodeAsync(model.SelectedProvider))
+            if (IsIdentityEnabled)
             {
-                return View("Error");
+                //// Generate the token and send it
+                //if (!await SignInManager.SendTwoFactorCodeAsync(model.SelectedProvider))
+                //{
+                //    return View("Error");
+                //}
             }
             return RedirectToAction("VerifyCode", new { Provider = model.SelectedProvider, ReturnUrl = model.ReturnUrl, RememberMe = model.RememberMe });
         }
@@ -337,29 +450,33 @@ namespace iTravels.Web.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> ExternalLoginCallback(string returnUrl)
         {
-            var loginInfo = await AuthenticationManager.GetExternalLoginInfoAsync();
-            if (loginInfo == null)
+            if (IsIdentityEnabled)
             {
-                return RedirectToAction("Login");
-            }
+                //var loginInfo = await AuthenticationManager.GetExternalLoginInfoAsync();
+                //if (loginInfo == null)
+                //{
+                //    return RedirectToAction("Login");
+                //}
 
-            // Sign in the user with this external login provider if the user already has a login
-            var result = await SignInManager.ExternalSignInAsync(loginInfo, isPersistent: false);
-            switch (result)
-            {
-                case SignInStatus.Success:
-                    return RedirectToLocal(returnUrl);
-                case SignInStatus.LockedOut:
-                    return View("Lockout");
-                case SignInStatus.RequiresVerification:
-                    return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = false });
-                case SignInStatus.Failure:
-                default:
-                    // If the user does not have an account, then prompt the user to create an account
-                    ViewBag.ReturnUrl = returnUrl;
-                    ViewBag.LoginProvider = loginInfo.Login.LoginProvider;
-                    return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { Email = loginInfo.Email });
+                //// Sign in the user with this external login provider if the user already has a login
+                //var result = await SignInManager.ExternalSignInAsync(loginInfo, isPersistent: false);
+                //switch (result)
+                //{
+                //    case SignInStatus.Success:
+                //        return RedirectToLocal(returnUrl);
+                //    case SignInStatus.LockedOut:
+                //        return View("Lockout");
+                //    case SignInStatus.RequiresVerification:
+                //        return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = false });
+                //    case SignInStatus.Failure:
+                //    default:
+                //        // If the user does not have an account, then prompt the user to create an account
+                //        ViewBag.ReturnUrl = returnUrl;
+                //        ViewBag.LoginProvider = loginInfo.Login.LoginProvider;
+                //        return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { Email = loginInfo.Email });
+                //}
             }
+            return View();
         }
 
         //
@@ -376,24 +493,27 @@ namespace iTravels.Web.Controllers
 
             if (ModelState.IsValid)
             {
-                // Get the information about the user from the external login provider
-                var info = await AuthenticationManager.GetExternalLoginInfoAsync();
-                if (info == null)
+                if (IsIdentityEnabled)
                 {
-                    return View("ExternalLoginFailure");
+                    //// Get the information about the user from the external login provider
+                    //var info = await AuthenticationManager.GetExternalLoginInfoAsync();
+                    //if (info == null)
+                    //{
+                    //    return View("ExternalLoginFailure");
+                    //}
+                    //var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                    //var result = await UserManager.CreateAsync(user);
+                    //if (result.Succeeded)
+                    //{
+                    //    result = await UserManager.AddLoginAsync(user.Id, info.Login);
+                    //    if (result.Succeeded)
+                    //    {
+                    //        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                    //        return RedirectToLocal(returnUrl);
+                    //    }
+                    //}
+                    //AddErrors(result);
                 }
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
-                var result = await UserManager.CreateAsync(user);
-                if (result.Succeeded)
-                {
-                    result = await UserManager.AddLoginAsync(user.Id, info.Login);
-                    if (result.Succeeded)
-                    {
-                        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
-                        return RedirectToLocal(returnUrl);
-                    }
-                }
-                AddErrors(result);
             }
 
             ViewBag.ReturnUrl = returnUrl;
@@ -406,7 +526,14 @@ namespace iTravels.Web.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult LogOff()
         {
-            AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+            if (IsIdentityEnabled)
+            {
+                //AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
+            }
+            else
+            {
+                FormsAuthentication.SignOut();
+            }
             return RedirectToAction("Index", "Home");
         }
 
@@ -422,16 +549,19 @@ namespace iTravels.Web.Controllers
         {
             if (disposing)
             {
-                if (_userManager != null)
+                if (IsIdentityEnabled)
                 {
-                    _userManager.Dispose();
-                    _userManager = null;
-                }
+                    //if (_userManager != null)
+                    //{
+                    //    _userManager.Dispose();
+                    //    _userManager = null;
+                    //}
 
-                if (_signInManager != null)
-                {
-                    _signInManager.Dispose();
-                    _signInManager = null;
+                    //if (_signInManager != null)
+                    //{
+                    //    _signInManager.Dispose();
+                    //    _signInManager = null;
+                    //}
                 }
             }
 
@@ -442,21 +572,21 @@ namespace iTravels.Web.Controllers
         // Used for XSRF protection when adding external logins
         private const string XsrfKey = "XsrfId";
 
-        private IAuthenticationManager AuthenticationManager
-        {
-            get
-            {
-                return HttpContext.GetOwinContext().Authentication;
-            }
-        }
+        //private IAuthenticationManager AuthenticationManager
+        //{
+        //    get
+        //    {
+        //        return HttpContext.GetOwinContext().Authentication;
+        //    }
+        //}
 
-        private void AddErrors(IdentityResult result)
-        {
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError("", error);
-            }
-        }
+        //private void AddErrors(IdentityResult result)
+        //{
+        //    foreach (var error in result.Errors)
+        //    {
+        //        ModelState.AddModelError("", error);
+        //    }
+        //}
 
         private ActionResult RedirectToLocal(string returnUrl)
         {
@@ -484,15 +614,19 @@ namespace iTravels.Web.Controllers
             public string LoginProvider { get; set; }
             public string RedirectUri { get; set; }
             public string UserId { get; set; }
+            private bool IsIdentityEnabled = Convert.ToBoolean(ConfigurationManager.AppSettings["IsIdentityEnabled"].ToString());
 
             public override void ExecuteResult(ControllerContext context)
             {
-                var properties = new AuthenticationProperties { RedirectUri = RedirectUri };
-                if (UserId != null)
+                if (IsIdentityEnabled)
                 {
-                    properties.Dictionary[XsrfKey] = UserId;
+                    //var properties = new AuthenticationProperties { RedirectUri = RedirectUri };
+                    //if (UserId != null)
+                    //{
+                    //    properties.Dictionary[XsrfKey] = UserId;
+                    //}
+                    //context.HttpContext.GetOwinContext().Authentication.Challenge(properties, LoginProvider);
                 }
-                context.HttpContext.GetOwinContext().Authentication.Challenge(properties, LoginProvider);
             }
         }
         #endregion

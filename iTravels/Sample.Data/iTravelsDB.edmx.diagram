@@ -4,9 +4,12 @@
   <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
     <!-- Diagram content (shape and connector positions) -->
     <edmx:Diagrams>
-      <Diagram DiagramId="e42d719894c840fa8babad972bb61b01" Name="Diagram1">
-        <EntityTypeShape EntityType="iTravelsModel.it_st_Role" Width="1.5" PointX="3.375" PointY="0.75" />
-        <EntityTypeShape EntityType="iTravelsModel.it_User" Width="1.5" PointX="0.75" PointY="0.75" />
+      <Diagram DiagramId="4baab8680d88455cabd5398e8dcbac4c" Name="Diagram1">
+        <EntityTypeShape EntityType="iTravelsDB.it_st_Role" Width="1.5" PointX="0.75" PointY="1.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="iTravelsDB.it_User" Width="1.5" PointX="0.75" PointY="7.625" IsExpanded="true" />
+        <EntityTypeShape EntityType="iTravelsDB.it_User_Role" Width="1.5" PointX="3" PointY="1" IsExpanded="true" />
+        <AssociationConnector Association="iTravelsDB.FK_it_User_Role_it_st_Role" ManuallyRouted="false" />
+        <AssociationConnector Association="iTravelsDB.FK_it_User_Role_it_User" ManuallyRouted="false" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

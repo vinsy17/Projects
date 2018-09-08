@@ -32,7 +32,15 @@ namespace iTravels.Web
                 container.Dispose();
             }
         }
-            private static void BootstrapContainer()
+        protected void Application_EndRequest()
+        {
+            if (Context.Items["AjaxPermissionDenied"] is bool)
+            {
+                Context.Response.StatusCode = 401;
+                Context.Response.End();
+            }
+        }
+        private static void BootstrapContainer()
         {
             container = new WindsorContainer();
             container.Install(new RepositoriesInstaller());

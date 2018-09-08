@@ -7,6 +7,7 @@ namespace iTravels.Web
     {
         public static void RegisterGlobalFilters(GlobalFilterCollection filters)
         {
+            filters.Add(new iTAuthorizeAttribute());
             filters.Add(new HandleErrorAttribute());
         }
     }

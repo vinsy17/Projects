@@ -27,5 +27,6 @@ namespace Sample.Data
     
         public virtual DbSet<it_st_Role> it_st_Role { get; set; }
         public virtual DbSet<it_User> it_User { get; set; }
+        public virtual DbSet<it_User_Role> it_User_Role { get; set; }
     }
 }

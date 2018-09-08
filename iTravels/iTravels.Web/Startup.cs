@@ -1,14 +1,14 @@
-﻿using Microsoft.Owin;
-using Owin;
+﻿//using Microsoft.Owin;
+//using Owin;
 
-[assembly: OwinStartupAttribute(typeof(iTravels.Web.Startup))]
+//[assembly: OwinStartupAttribute(typeof(iTravels.Web.Startup))]
 namespace iTravels.Web
 {
     public partial class Startup
     {
-        public void Configuration(IAppBuilder app)
-        {
-            ConfigureAuth(app);
-        }
+        //public void Configuration(IAppBuilder app)
+        //{
+        //    ConfigureAuth(app);
+        //}
     }
 }

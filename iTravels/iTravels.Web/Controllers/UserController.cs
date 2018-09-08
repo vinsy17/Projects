@@ -6,7 +6,7 @@ using System.Web.Mvc;
 
 namespace iTravels.Web.Controllers
 {
-    [Authorize]
+    [iTAuthorize]
     public class UserController : Controller
     {
         // GET: User

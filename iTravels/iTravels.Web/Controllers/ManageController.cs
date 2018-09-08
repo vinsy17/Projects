@@ -3,52 +3,65 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
-using Microsoft.AspNet.Identity;
-using Microsoft.AspNet.Identity.Owin;
-using Microsoft.Owin.Security;
+//using Microsoft.AspNet.Identity;
+//using Microsoft.AspNet.Identity.Owin;
+//using Microsoft.Owin.Security;
 using iTravels.Web.ViewModels;
+using Sample.Core.Services;
+using System.Configuration;
+using System.Collections.Generic;
+using System.Web.Security;
+using iTravels.Web.Utilities;
+using Sample.Core.Models;
 
 namespace iTravels.Web.Controllers
 {
-    [Authorize]
+    [iTAuthorize]
     public class ManageController : Controller
     {
-        private ApplicationSignInManager _signInManager;
-        private ApplicationUserManager _userManager;
+        //private ApplicationSignInManager _signInManager;
+        //private ApplicationUserManager _userManager;
+        private readonly IUserService _userService;
 
+        private bool IsIdentityEnabled = Convert.ToBoolean(ConfigurationManager.AppSettings["IsIdentityEnabled"].ToString());
+        private Guid UserId = Utilities.Utility.GetUserIdFromSession();// System.Web.HttpContext.Current.Session["UserId"] != null ? new Guid(System.Web.HttpContext.Current.Session["UserId"].ToString()) : ;
         public ManageController()
         {
         }
-
-        public ManageController(ApplicationUserManager userManager, ApplicationSignInManager signInManager)
+        public ManageController(IUserService userService)
         {
-            UserManager = userManager;
-            SignInManager = signInManager;
+            this._userService = userService;
         }
 
-        public ApplicationSignInManager SignInManager
-        {
-            get
-            {
-                return _signInManager ?? HttpContext.GetOwinContext().Get<ApplicationSignInManager>();
-            }
-            private set
-            {
-                _signInManager = value;
-            }
-        }
+        //public ManageController(ApplicationUserManager userManager, ApplicationSignInManager signInManager)
+        //{
+        //    UserManager = userManager;
+        //    SignInManager = signInManager;
+        //}
 
-        public ApplicationUserManager UserManager
-        {
-            get
-            {
-                return _userManager ?? HttpContext.GetOwinContext().GetUserManager<ApplicationUserManager>();
-            }
-            private set
-            {
-                _userManager = value;
-            }
-        }
+        //public ApplicationSignInManager SignInManager
+        //{
+        //    get
+        //    {
+        //        return _signInManager ?? HttpContext.GetOwinContext().Get<ApplicationSignInManager>();
+        //    }
+        //    private set
+        //    {
+        //        _signInManager = value;
+        //    }
+        //}
+
+        //public ApplicationUserManager UserManager
+        //{
+        //    get
+        //    {
+        //        return _userManager ?? HttpContext.GetOwinContext().GetUserManager<ApplicationUserManager>();
+        //    }
+        //    private set
+        //    {
+        //        _userManager = value;
+        //    }
+        //}
 
         //
         // GET: /Manage/Index
@@ -63,16 +76,40 @@ namespace iTravels.Web.Controllers
                 : message == ManageMessageId.RemovePhoneSuccess ? "Your phone number was removed."
                 : "";
 
-            var userId = User.Identity.GetUserId();
-            var model = new IndexViewModel
+            if (IsIdentityEnabled)
             {
-                HasPassword = HasPassword(),
-                PhoneNumber = await UserManager.GetPhoneNumberAsync(userId),
-                TwoFactor = await UserManager.GetTwoFactorEnabledAsync(userId),
-                Logins = await UserManager.GetLoginsAsync(userId),
-                BrowserRemembered = await AuthenticationManager.TwoFactorBrowserRememberedAsync(userId)
-            };
-            return View(model);
+                //var userId = User.Identity.GetUserId();
+                //var model = new IndexViewModel
+                //{
+                //    HasPassword = HasPassword(),
+                //    PhoneNumber = await UserManager.GetPhoneNumberAsync(userId),
+                //    TwoFactor = await UserManager.GetTwoFactorEnabledAsync(userId),
+                //    Logins = await UserManager.GetLoginsAsync(userId),
+                //    BrowserRemembered = await AuthenticationManager.TwoFactorBrowserRememberedAsync(userId)
+                //};
+                //return View(model);
+            }
+            else
+            {
+                User user = UserId != Guid.Empty ? _userService.GetUser(UserId) : null;
+                if (user != null)
+                {
+                    var model = new IndexViewModel
+                    {
+                        HasPassword = true,//HasPassword(),
+                        PhoneNumber = user.MobileNumber,// await UserManager.GetPhoneNumberAsync(userId),
+                        TwoFactor = false,//await UserManager.GetTwoFactorEnabledAsync(userId),
+                        //Logins = new List<UserLoginInfo>(),// await UserManager.GetLoginsAsync(userId),
+                        BrowserRemembered = false// await AuthenticationManager.TwoFactorBrowserRememberedAsync(userId)
+                    };
+                    return View(model);
+                }
+                else {
+                    return View(new IndexViewModel());
+                }
+            }
+
+            return View(new IndexViewModel());
         }
 
         //
@@ -81,20 +118,23 @@ namespace iTravels.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RemoveLogin(string loginProvider, string providerKey)
         {
-            ManageMessageId? message;
-            var result = await UserManager.RemoveLoginAsync(User.Identity.GetUserId(), new UserLoginInfo(loginProvider, providerKey));
-            if (result.Succeeded)
+            ManageMessageId? message=null;
+            if (IsIdentityEnabled)
             {
-                var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
-                if (user != null)
-                {
-                    await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
-                }
-                message = ManageMessageId.RemoveLoginSuccess;
-            }
-            else
-            {
-                message = ManageMessageId.Error;
+                //var result = await UserManager.RemoveLoginAsync(User.Identity.GetUserId(), new UserLoginInfo(loginProvider, providerKey));
+                //if (result.Succeeded)
+                //{
+                //    var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+                //    if (user != null)
+                //    {
+                //        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                //    }
+                //    message = ManageMessageId.RemoveLoginSuccess;
+                //}
+                //else
+                //{
+                //    message = ManageMessageId.Error;
+                //}
             }
             return RedirectToAction("ManageLogins", new { Message = message });
         }
@@ -116,16 +156,19 @@ namespace iTravels.Web.Controllers
             {
                 return View(model);
             }
-            // Generate the token and send it
-            var code = await UserManager.GenerateChangePhoneNumberTokenAsync(User.Identity.GetUserId(), model.Number);
-            if (UserManager.SmsService != null)
+            if (IsIdentityEnabled)
             {
-                var message = new IdentityMessage
-                {
-                    Destination = model.Number,
-                    Body = "Your security code is: " + code
-                };
-                await UserManager.SmsService.SendAsync(message);
+                //// Generate the token and send it
+                //var code = await UserManager.GenerateChangePhoneNumberTokenAsync(User.Identity.GetUserId(), model.Number);
+                //if (UserManager.SmsService != null)
+                //{
+                //    var message = new IdentityMessage
+                //    {
+                //        Destination = model.Number,
+                //        Body = "Your security code is: " + code
+                //    };
+                //    await UserManager.SmsService.SendAsync(message);
+                //}
             }
             return RedirectToAction("VerifyPhoneNumber", new { PhoneNumber = model.Number });
         }
@@ -136,11 +179,14 @@ namespace iTravels.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> EnableTwoFactorAuthentication()
         {
-            await UserManager.SetTwoFactorEnabledAsync(User.Identity.GetUserId(), true);
-            var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
-            if (user != null)
+            if (IsIdentityEnabled)
             {
-                await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                //await UserManager.SetTwoFactorEnabledAsync(User.Identity.GetUserId(), true);
+                //var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+                //if (user != null)
+                //{
+                //    await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                //}
             }
             return RedirectToAction("Index", "Manage");
         }
@@ -151,11 +197,14 @@ namespace iTravels.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> DisableTwoFactorAuthentication()
         {
-            await UserManager.SetTwoFactorEnabledAsync(User.Identity.GetUserId(), false);
-            var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
-            if (user != null)
+            if (IsIdentityEnabled)
             {
-                await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                //await UserManager.SetTwoFactorEnabledAsync(User.Identity.GetUserId(), false);
+                //var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+                //if (user != null)
+                //{
+                //    await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                //}
             }
             return RedirectToAction("Index", "Manage");
         }
@@ -164,7 +213,10 @@ namespace iTravels.Web.Controllers
         // GET: /Manage/VerifyPhoneNumber
         public async Task<ActionResult> VerifyPhoneNumber(string phoneNumber)
         {
-            var code = await UserManager.GenerateChangePhoneNumberTokenAsync(User.Identity.GetUserId(), phoneNumber);
+            if (IsIdentityEnabled)
+            {
+                //var code = await UserManager.GenerateChangePhoneNumberTokenAsync(User.Identity.GetUserId(), phoneNumber);
+            }
             // Send an SMS through the SMS provider to verify the phone number
             return phoneNumber == null ? View("Error") : View(new VerifyPhoneNumberViewModel { PhoneNumber = phoneNumber });
         }
@@ -179,15 +231,18 @@ namespace iTravels.Web.Controllers
             {
                 return View(model);
             }
-            var result = await UserManager.ChangePhoneNumberAsync(User.Identity.GetUserId(), model.PhoneNumber, model.Code);
-            if (result.Succeeded)
+            if (IsIdentityEnabled)
             {
-                var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
-                if (user != null)
-                {
-                    await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
-                }
-                return RedirectToAction("Index", new { Message = ManageMessageId.AddPhoneSuccess });
+                //var result = await UserManager.ChangePhoneNumberAsync(User.Identity.GetUserId(), model.PhoneNumber, model.Code);
+                //if (result.Succeeded)
+                //{
+                //    var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+                //    if (user != null)
+                //    {
+                //        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                //    }
+                //    return RedirectToAction("Index", new { Message = ManageMessageId.AddPhoneSuccess });
+                //}
             }
             // If we got this far, something failed, redisplay form
             ModelState.AddModelError("", "Failed to verify phone");
@@ -200,15 +255,18 @@ namespace iTravels.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> RemovePhoneNumber()
         {
-            var result = await UserManager.SetPhoneNumberAsync(User.Identity.GetUserId(), null);
-            if (!result.Succeeded)
+            if (IsIdentityEnabled)
             {
-                return RedirectToAction("Index", new { Message = ManageMessageId.Error });
-            }
-            var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
-            if (user != null)
-            {
-                await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                //var result = await UserManager.SetPhoneNumberAsync(User.Identity.GetUserId(), null);
+                //if (!result.Succeeded)
+                //{
+                //    return RedirectToAction("Index", new { Message = ManageMessageId.Error });
+                //}
+                //var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+                //if (user != null)
+                //{
+                //    await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                //}
             }
             return RedirectToAction("Index", new { Message = ManageMessageId.RemovePhoneSuccess });
         }
@@ -226,21 +284,56 @@ namespace iTravels.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> ChangePassword(ChangePasswordViewModel model)
         {
-            if (!ModelState.IsValid)
+            if (IsIdentityEnabled)
             {
-                return View(model);
+                //if (!ModelState.IsValid)
+                //{
+                //    return View(model);
+                //}
+                //var result = await UserManager.ChangePasswordAsync(User.Identity.GetUserId(), model.OldPassword, model.NewPassword);
+                //if (result.Succeeded)
+                //{
+                //    var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+                //    if (user != null)
+                //    {
+                //        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                //    }
+                //    return RedirectToAction("Index", new { Message = ManageMessageId.ChangePasswordSuccess });
+                //}
+                //AddErrors(result);
             }
-            var result = await UserManager.ChangePasswordAsync(User.Identity.GetUserId(), model.OldPassword, model.NewPassword);
-            if (result.Succeeded)
+            else
             {
-                var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
-                if (user != null)
+                if (ModelState.IsValid && UserId != new Guid())
                 {
-                    await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                    bool isSuccess = _userService.ChangePassword(UserId, model.OldPassword, model.NewPassword);
+                    if (isSuccess)
+                    {
+                        string emailAddress = Utilities.Utility.GetEmailAddressFromSession();
+                        var user = _userService.AuthenticateUser(emailAddress, model.NewPassword);
+                        if (user != null && user.IsAuthenticateUser)
+                        {
+                            FormsAuthentication.SignOut();
+                            bool isPersistent = false;
+                            int timeout = 30; // Timeout in minutes, 525600 = 365 days.
+                            FormsAuthenticationTicket tkt = new FormsAuthenticationTicket(1, user.EmailAddress, DateTime.Now, DateTime.Now.AddMinutes(timeout), isPersistent, "your custom data");
+                            string cookiestr = FormsAuthentication.Encrypt(tkt);
+                            HttpCookie ck = new HttpCookie(FormsAuthentication.FormsCookieName, cookiestr);
+                            if (isPersistent)
+                                ck.Expires = tkt.Expiration;
+                            ck.Path = FormsAuthentication.FormsCookiePath;
+                            //    ck.HttpOnly = true; // cookie not available in javascript.
+                            Response.Cookies.Add(ck);
+                            //session values
+                            HttpContext.Session.Add("UserId", user.UserId);
+                            HttpContext.Session.Add("EmailAddress", user.UserId);
+                            return RedirectToAction("Index", new { Message = ManageMessageId.ChangePasswordSuccess });
+                        }
+                    }
+                    ModelState.AddModelError("", "Error in Changing Password");
                 }
-                return RedirectToAction("Index", new { Message = ManageMessageId.ChangePasswordSuccess });
+
             }
-            AddErrors(result);
             return View(model);
         }
 
@@ -259,17 +352,20 @@ namespace iTravels.Web.Controllers
         {
             if (ModelState.IsValid)
             {
-                var result = await UserManager.AddPasswordAsync(User.Identity.GetUserId(), model.NewPassword);
-                if (result.Succeeded)
+                if (IsIdentityEnabled)
                 {
-                    var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
-                    if (user != null)
-                    {
-                        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
-                    }
-                    return RedirectToAction("Index", new { Message = ManageMessageId.SetPasswordSuccess });
+                    //var result = await UserManager.AddPasswordAsync(User.Identity.GetUserId(), model.NewPassword);
+                    //if (result.Succeeded)
+                    //{
+                    //    var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+                    //    if (user != null)
+                    //    {
+                    //        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                    //    }
+                    //    return RedirectToAction("Index", new { Message = ManageMessageId.SetPasswordSuccess });
+                    //}
+                    //AddErrors(result);
                 }
-                AddErrors(result);
             }
 
             // If we got this far, something failed, redisplay form
@@ -284,19 +380,23 @@ namespace iTravels.Web.Controllers
                 message == ManageMessageId.RemoveLoginSuccess ? "The external login was removed."
                 : message == ManageMessageId.Error ? "An error has occurred."
                 : "";
-            var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
-            if (user == null)
+            if (IsIdentityEnabled)
             {
-                return View("Error");
+                //var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+                //if (user == null)
+                //{
+                //    return View("Error");
+                //}
+                //var userLogins = await UserManager.GetLoginsAsync(User.Identity.GetUserId());
+                //var otherLogins = AuthenticationManager.GetExternalAuthenticationTypes().Where(auth => userLogins.All(ul => auth.AuthenticationType != ul.LoginProvider)).ToList();
+                //ViewBag.ShowRemoveButton = user.PasswordHash != null || userLogins.Count > 1;
+                //return View(new ManageLoginsViewModel
+                //{
+                //    CurrentLogins = userLogins,
+                //    OtherLogins = otherLogins
+                //});
             }
-            var userLogins = await UserManager.GetLoginsAsync(User.Identity.GetUserId());
-            var otherLogins = AuthenticationManager.GetExternalAuthenticationTypes().Where(auth => userLogins.All(ul => auth.AuthenticationType != ul.LoginProvider)).ToList();
-            ViewBag.ShowRemoveButton = user.PasswordHash != null || userLogins.Count > 1;
-            return View(new ManageLoginsViewModel
-            {
-                CurrentLogins = userLogins,
-                OtherLogins = otherLogins
-            });
+            return View();
         }
 
         //
@@ -305,31 +405,42 @@ namespace iTravels.Web.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult LinkLogin(string provider)
         {
-            // Request a redirect to the external login provider to link a login for the current user
-            return new AccountController.ChallengeResult(provider, Url.Action("LinkLoginCallback", "Manage"), User.Identity.GetUserId());
+            if (IsIdentityEnabled)
+            {
+                //// Request a redirect to the external login provider to link a login for the current user
+                //return new AccountController.ChallengeResult(provider, Url.Action("LinkLoginCallback", "Manage"), User.Identity.GetUserId());
+            }
+            return new AccountController.ChallengeResult(provider, Url.Action("LinkLoginCallback", "Manage"), Utility.GetUserIdFromSession().ToString());
         }
 
         //
         // GET: /Manage/LinkLoginCallback
         public async Task<ActionResult> LinkLoginCallback()
         {
-            var loginInfo = await AuthenticationManager.GetExternalLoginInfoAsync(XsrfKey, User.Identity.GetUserId());
-            if (loginInfo == null)
+            if (IsIdentityEnabled)
             {
-                return RedirectToAction("ManageLogins", new { Message = ManageMessageId.Error });
+                //var loginInfo = await AuthenticationManager.GetExternalLoginInfoAsync(XsrfKey, User.Identity.GetUserId());
+                //if (loginInfo == null)
+                //{
+                //    return RedirectToAction("ManageLogins", new { Message = ManageMessageId.Error });
+                //}
+                //var result = await UserManager.AddLoginAsync(User.Identity.GetUserId(), loginInfo.Login);
+
+                //return result.Succeeded ? RedirectToAction("ManageLogins") : RedirectToAction("ManageLogins", new { Message = ManageMessageId.Error });
             }
-            var result = await UserManager.AddLoginAsync(User.Identity.GetUserId(), loginInfo.Login);
-            return result.Succeeded ? RedirectToAction("ManageLogins") : RedirectToAction("ManageLogins", new { Message = ManageMessageId.Error });
+            return RedirectToAction("ManageLogins");
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && _userManager != null)
+            if (IsIdentityEnabled)
             {
-                _userManager.Dispose();
-                _userManager = null;
+                //if (disposing && _userManager != null)
+                //{
+                //    _userManager.Dispose();
+                //    _userManager = null;
+                //}
             }
-
             base.Dispose(disposing);
         }
 
@@ -337,38 +448,44 @@ namespace iTravels.Web.Controllers
         // Used for XSRF protection when adding external logins
         private const string XsrfKey = "XsrfId";
 
-        private IAuthenticationManager AuthenticationManager
-        {
-            get
-            {
-                return HttpContext.GetOwinContext().Authentication;
-            }
-        }
+        //private IAuthenticationManager AuthenticationManager
+        //{
+        //    get
+        //    {
+        //        return HttpContext.GetOwinContext().Authentication;
+        //    }
+        //}
 
-        private void AddErrors(IdentityResult result)
-        {
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError("", error);
-            }
-        }
+        //private void AddErrors(IdentityResult result)
+        //{
+        //    foreach (var error in result.Errors)
+        //    {
+        //        ModelState.AddModelError("", error);
+        //    }
+        //}
 
         private bool HasPassword()
         {
-            var user = UserManager.FindById(User.Identity.GetUserId());
-            if (user != null)
+            if (IsIdentityEnabled)
             {
-                return user.PasswordHash != null;
+                //var user = UserManager.FindById(User.Identity.GetUserId());
+                //if (user != null)
+                //{
+                //    return user.PasswordHash != null;
+                //}
             }
             return false;
         }
 
         private bool HasPhoneNumber()
         {
-            var user = UserManager.FindById(User.Identity.GetUserId());
-            if (user != null)
+            if (IsIdentityEnabled)
             {
-                return user.PhoneNumber != null;
+                //var user = UserManager.FindById(User.Identity.GetUserId());
+                //if (user != null)
+                //{
+                //    return user.PhoneNumber != null;
+                //}
             }
             return false;
         }
